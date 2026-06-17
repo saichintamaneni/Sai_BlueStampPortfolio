@@ -29,29 +29,15 @@ For your final milestone, explain the outcome of your project. Key details to in
 
 
 
-# Second Milestone
+# First and Second Milestone
 
 **Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/y3VAmNlER5Y" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-For your second milestone, explain what you've worked on since your previous milestone. You can highlight:
-- Technical details of what you've accomplished and how they contribute to the final goal
-- What has been surprising about the project so far
-- Previous challenges you faced that you overcame
-- What needs to be completed before your final milestone 
+My project is an armband that is aimed to recognize when someone who is supposed to have limited mobility (due to surgery, broken bones, etc.) moves their arm passed a certain threshold as well as when they are in unsafe temperature conditions.  The components of my project include an Arduino Nano ESP32, a DS18B20 Temperature Sensor, an Accelerometer, a Piezo Speaker, and a Vibration buzzer. Through both milestones, I was able to not only test the components individually (including a Force Resistive Sensor that I did not end up using at this stage), but I also connected each one and made the base of the device, in which both the temperature sensor and accelerometer set off the speaker and buzzer to alert the armband wearer if they are in too hot of a condition, are moving their arm too mucch, or both. Some challenges I faced when making this project include the accelerometer not registering with the Arduino, and through many tests I was eventually able to figure out with the help of my instructors that the issue was setemming from the fact the A4 and A5 pins on my ESP32 were not working, and this was important because they are the only pins that work with the accleromter. To fix this, we ordered a new ESP32 with working pins. The next issue I struggled with was the temperature sesnor, as the DS18B20 was not working with the Nano, so for the time being I replaced the temperature sensor with a photoresister which measures ambient lighting for proof of concept, and in my video I demonstrate how I used the measurements taken to create a "Fake Temperature" which transfers the data found from the lighting into a readable temperature. My second miletsone was completeing the board and combining all the components on my breadboard, and I displayed this in my video. Each of the sensors trigger a certain pattern in the buzzer and speaker based on if they pass the "dangerous" threshold for the armband wearer, and there is a pattern for if both are occuring. Something that has been suprising about the project so far is that it has really taught me how to troubleshoot errors, because my project so hevaily relies on multiple different components, and if one doesn't work it sets off the rest of the project, so I did not expect for that to be such a large learning curve for me. To complete my final milestone, I am hoping to figure out my temperature sesnor and add it back in, as well as attatch my board to the armband apparatus, and figure out the logistics of that. I also hope to see if there is anyway for me to re-include the FSR in my final version.
 
-# First Milestone
 
-**Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/CaCazFBhYKs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-For your first milestone, describe what your project is and how you plan to build it. You can include:
-- An explanation about the different components of your project and how they will all integrate together
-- Technical progress you've made so far
-- Challenges you're facing and solving in your future milestones
-- What your plan is to complete your project
 
 # Schematics 
 Here's where you'll put images of your schematics. [Tinkercad](https://www.tinkercad.com/blog/official-guide-to-tinkercad-circuits) and [Fritzing](https://fritzing.org/learning/) are both great resoruces to create professional schematic diagrams, though BSE recommends Tinkercad becuase it can be done easily and for free in the browser. 
