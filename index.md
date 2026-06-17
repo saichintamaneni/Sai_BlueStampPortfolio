@@ -46,16 +46,213 @@ Here's where you'll put images of your schematics. [Tinkercad](https://www.tinke
 Here's where you'll put your code. The syntax below places it into a block of code. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize it to your project needs. 
 
 ```c++
+#include <Wire.h> // Used for I2C communication with the MPU6050 accelerometer
+ // Output pins
+const int motorPin = D9; // Vibration motor signal pin
+const int buzzerPin = D8; // Passive piezo buzzer pin
+const int buttonPin = D2; // Button pin
+// Input pin
+const int lightPin = A1; // Photoresistor pin, pretending to be temperature
+// MPU6050 settings
+const int MPU_ADDR = 0x68; // Default I2C address for MPU6050
+bool accelFound = false; // Tracks whether accelerometer was detected
+int16_t baseX, baseY, baseZ; // Starting/normal accelerometer position
+// Alert states
+bool motionAlert = false; // True when motion alert is active
+bool tempAlert = false; // True when fake temperature alert is active
+bool alertsMuted = false; // True after button is pressed to silence alert
+// Motion threshold in g units
+// Same as old raw threshold of 12000: 12000 / 16384 = about 0.73g
+const float motionThresholdG = 0.73;
+// Fake temperature limits
+const float lowTempC = 35.0; // Low fake body temp limit
+const float highTempC = 38.0; // High fake body temp limit
 void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
-  Serial.println("Hello World!");
+    Serial.begin(115200); // Start Serial Monitor
+    delay(2000); // Give Serial Monitor time to open
+    pinMode(motorPin, OUTPUT); // Motor is an output
+    pinMode(buzzerPin, OUTPUT); // Buzzer is an output
+    pinMode(buttonPin, INPUT_PULLUP); // Button uses internal pull-up resistor
+    digitalWrite(motorPin, LOW); // Motor off at start
+    noTone(buzzerPin); // Buzzer off at start
+    Serial.println("Patient alert project starting...");
+    // Start accelerometer communication
+    Wire.begin();
+    // Check if MPU6050 is connected
+    Wire.beginTransmission(MPU_ADDR);
+    byte error = Wire.endTransmission();
+    if (error == 0) {
+        Serial.println("MPU6050 found!");
+        accelFound = true;
+        // Wake up MPU6050
+        Wire.beginTransmission(MPU_ADDR);
+        Wire.write(0x6B); // Power management register
+        Wire.write(0); // Wake sensor up
+        Wire.endTransmission();
+        delay(500);
+        // Save current position as the normal starting position
+        readAccelerometer(baseX, baseY, baseZ);
+    } else {
+        Serial.println("MPU6050 not found. Motion alert disabled.");
+        accelFound = false;
+    }
 }
-
 void loop() {
-  // put your main code here, to run repeatedly:
-
+    // If button is pressed, mute current alerts
+    if (buttonPressed()) {
+        clearAlerts();
+        alertsMuted = true;
+        Serial.println("Alerts muted by button.");
+        delay(500); // Simple debounce delay
+        return;
+    }
+    checkMotion(); // Check accelerometer motion
+    checkFakeTemperature(); // Check fake temp from photoresistor
+    // If both alerts are no longer active, allow future alerts again
+    if (!motionAlert && !tempAlert) {
+        alertsMuted = false;
+    }
+    // If alerts were muted, keep motor and buzzer off
+    if (alertsMuted) {
+        stopOutputs();
+        delay(100);
+        return;
+    }
+    // Pick the correct alert pattern
+    if (motionAlert && tempAlert) {
+        playBothAlert(); // Continuous alert
+    } else if (motionAlert) {
+        playMotionAlert(); // Long beep pattern
+    } else if (tempAlert) {
+        playTempAlert(); // Double beep pattern
+    } else {
+        stopOutputs(); // Nothing wrong, stay quiet
+    }
+    delay(100);
 }
+void checkMotion() {
+    if (!accelFound) return; // Skip if accelerometer was not detected
+    int16_t x, y, z; // Current accelerometer readings
+    readAccelerometer(x, y, z);
+    // Compare current position to starting position
+    int rawMovement = abs(x - baseX) + abs(y - baseY) + abs(z - baseZ);
+    // Convert raw movement to approximate g units
+    float movementG = rawMovement / 16384.0;
+    Serial.print("Movement G: ");
+    Serial.println(movementG);
+    // If movement is big enough, turn on motion alert
+    if (movementG > motionThresholdG) {
+        motionAlert = true;
+    }
+}
+void checkFakeTemperature() {
+    int lightValue = analogRead(lightPin); // Read photoresistor value
+    // Convert light reading to fake body temp from 35C to 42C
+    float fakeTempC = 35.0 + (lightValue / 4095.0) * 7.0;
+    Serial.print("Light: ");
+    Serial.print(lightValue);
+    Serial.print(" | Fake Temp C: ");
+    Serial.println(fakeTempC);
+    // If fake temp is outside the safe range, trigger temp alert
+    if (fakeTempC < lowTempC || fakeTempC > highTempC) {
+        tempAlert = true;
+    }
+}
+void playMotionAlert() {
+    // Pattern: beeeep ... beeeep ... beeeep
+    digitalWrite(motorPin, HIGH); // Motor on
+    tone(buzzerPin, 1000); // Buzzer on
+    delay(600); // Long beep
+    digitalWrite(motorPin, LOW); // Motor off
+    noTone(buzzerPin); // Buzzer off
+    delay(400); // Pause
+}
+void playTempAlert() {
+    // Pattern: beepbeep ... beepbeep ... beepbeep
+    for (int i = 0; i < 2; i++) {
+        digitalWrite(motorPin, HIGH); // Motor on
+        tone(buzzerPin, 1500); // Buzzer on
+        delay(150); // Short beep
+        digitalWrite(motorPin, LOW); // Motor off
+        noTone(buzzerPin); // Buzzer off
+        delay(150); // Short pause
+    }
+    delay(500); // Longer pause between double-beep groups
+}
+void playBothAlert() {
+    // Pattern: continuous beeeeeeeeeep
+    digitalWrite(motorPin, HIGH); // Motor stays on
+    tone(buzzerPin, 2000); // Buzzer stays on
+}
+void clearAlerts() {
+    motionAlert = false; // Clear motion alert
+    tempAlert = false; // Clear temp alert
+    stopOutputs(); // Turn off motor and buzzer
+}
+void stopOutputs() {
+    digitalWrite(motorPin, LOW); // Motor off
+    noTone(buzzerPin); // Buzzer off
+}
+bool buttonPressed() {
+    // Button uses INPUT_PULLUP, so pressed = LOW
+    return digitalRead(buttonPin) == LOW;
+}
+void readAccelerometer(int16_t & x, int16_t & y, int16_t & z) {
+    // Ask MPU6050 for accelerometer data
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(0x3B); // First accelerometer register
+    Wire.endTransmission(false);
+    // Request 6 bytes: X high/low, Y high/low, Z high/low
+    Wire.requestFrom(MPU_ADDR, 6, true);
+    // Combine two bytes for each axis
+    x = Wire.read() << 8 | Wire.read();
+    y = Wire.read() << 8 | Wire.read();
+    z = Wire.read() << 8 | Wire.read();
+}
+
+—-------------------------------------------------------------------------------------------------------------------
+// Include the libraries we need
+#include <OneWire.h>
+#include <DallasTemperature.h>
+// Data wire is plugged into port 2 on the Arduino
+#define ONE_WIRE_BUS D4
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors( & oneWire);
+
+// The setup function. We only start the sensors here
+ 
+void setup(void) {
+    // start serial port
+    Serial.begin(9600);
+    Serial.println("Dallas Temperature IC Control Library Demo");
+    // Start up the library
+    sensors.begin();
+}
+
+// Main function, get and show the temperature
+ 
+void loop(void) {
+    // call sensors.requestTemperatures() to issue a global temperature
+    // request to all devices on the bus
+    Serial.print("Requesting temperatures...");
+    sensors.requestTemperatures(); // Send the command to get temperatures
+    Serial.println("DONE");
+    delay(1500);
+    // After we got the temperatures, we can print them here.
+    // We use the function ByIndex, and as an example get the temperature from the first sensor only.
+    float tempC = sensors.getTempCByIndex((uint8_t) 0);
+    // Check if reading was successful
+    if (tempC != DEVICE_DISCONNECTED_C) {
+        Serial.print("Temperature for the device 1 (index 0) is: ");
+        Serial.println(tempC);
+    } else {
+        Serial.println("Error: Could not read temperature data");
+    }
+}
+
+
 ```
 
 # Bill of Materials
