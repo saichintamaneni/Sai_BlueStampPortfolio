@@ -1,5 +1,5 @@
-# BlueStamp Project
-Replace this text with a brief description (2-3 sentences) of your project. This description should draw the reader in and make them interested in what you've built. You can include what the biggest challenges, takeaways, and triumphs from completing the project were. As you complete your portfolio, remember your audience is less familiar than you are with all that your project entails!
+# Armband Health Sensor
+My project is a wearable armband that can sense when someone who is supposed to limit their mobility overextends their arm, as well as let them know about the safety of their specific temperature circumstance. Using a temperature sensor and accelerometer to detect the arms movement, a speaker and buzzer go off with different patterns to alert the wearer on what is happening. This project held many challenges and learning curves due to the many components, but it was also extremely entertaining to work on as well as fufilling because it made a device that was applicable for the health field and was effective. 
 
 You should comment out all portions of your portfolio that you have not completed yet, as well as any instructions:
 ```HTML 
@@ -37,7 +37,7 @@ My project is an armband that is aimed to recognize when someone who is supposed
 
 
 
-# Schematics 
+# Schematic 
 Here's where you'll put images of your schematics. [Tinkercad](https://www.tinkercad.com/blog/official-guide-to-tinkercad-circuits) and [Fritzing](https://fritzing.org/learning/) are both great resoruces to create professional schematic diagrams, though BSE recommends Tinkercad becuase it can be done easily and for free in the browser. 
 
 # Code
