@@ -44,37 +44,49 @@ Here's where you'll put images of your schematics. [Tinkercad](https://www.tinke
 Here's where you'll put your code. The syntax below places it into a block of code. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize it to your project needs. 
 
 ```c++
-#include <Wire.h> // Used for I2C communication with the MPU6050 accelerometer
- // Output pins
-const int motorPin = D9; // Vibration motor signal pin
-const int buzzerPin = D8; // Passive piezo buzzer pin
+#include <Wire.h>                 // For MPU6050 accelerometer communication
+
+#include <OneWire.h>              // For DS18B20 temperature sensor
+
+#include <DallasTemperature.h>    // Easier DS18B20 temperature readings
+ // -------------------- PINS --------------------
+const int motorPin = D9; // Vibration motor pin
+const int buzzerPin = D8; // Piezo buzzer pin
 const int buttonPin = D2; // Button pin
-// Input pin
-const int lightPin = A1; // Photoresistor pin, pretending to be temperature
-// MPU6050 settings
-const int MPU_ADDR = 0x68; // Default I2C address for MPU6050
-bool accelFound = false; // Tracks whether accelerometer was detected
-int16_t baseX, baseY, baseZ; // Starting/normal accelerometer position
-// Alert states
+const int tempPin = D4; // DS18B20 data pin
+// -------------------- MPU6050 --------------------
+const int MPU_ADDR = 0x68; // MPU6050 default I2C address
+bool accelFound = false; // Tracks if MPU6050 was detected
+int16_t baseX, baseY, baseZ; // Starting/normal position
+// -------------------- DS18B20 TEMP SENSOR --------------------
+OneWire oneWire(tempPin); // OneWire connection on D4
+DallasTemperature tempSensor( & oneWire); // Temperature sensor object
+// -------------------- ALERT STATES --------------------
 bool motionAlert = false; // True when motion alert is active
-bool tempAlert = false; // True when fake temperature alert is active
-bool alertsMuted = false; // True after button is pressed to silence alert
-// Motion threshold in g units
-// Same as old raw threshold of 12000: 12000 / 16384 = about 0.73g
+bool tempAlert = false; // True when temp alert is active
+bool alertsMuted = false; // True after button press mutes alert
+// -------------------- THRESHOLDS --------------------
+// Same idea as raw threshold of 12000.
+// 12000 / 16384 = about 0.73g
 const float motionThresholdG = 0.73;
-// Fake temperature limits
-const float lowTempC = 35.0; // Low fake body temp limit
-const float highTempC = 38.0; // High fake body temp limit
+// Temperature range
+const float lowTempC = 35.0;
+const float highTempC = 38.0;
+// -------------------- SETUP --------------------
 void setup() {
     Serial.begin(115200); // Start Serial Monitor
-    delay(2000); // Give Serial Monitor time to open
-    pinMode(motorPin, OUTPUT); // Motor is an output
-    pinMode(buzzerPin, OUTPUT); // Buzzer is an output
-    pinMode(buttonPin, INPUT_PULLUP); // Button uses internal pull-up resistor
-    digitalWrite(motorPin, LOW); // Motor off at start
-    noTone(buzzerPin); // Buzzer off at start
+    delay(2000); // Wait before starting
+    pinMode(motorPin, OUTPUT); // Motor output
+    pinMode(buzzerPin, OUTPUT); // Buzzer output
+    pinMode(buttonPin, INPUT_PULLUP); // Button uses internal pull-up
+    digitalWrite(motorPin, LOW); // Motor off
+    noTone(buzzerPin); // Buzzer off
     Serial.println("Patient alert project starting...");
-    // Start accelerometer communication
+    // Start temperature sensor
+    tempSensor.begin();
+    Serial.print("DS18B20 sensors found: ");
+    Serial.println(tempSensor.getDeviceCount());
+    // Start accelerometer
     Wire.begin();
     // Check if MPU6050 is connected
     Wire.beginTransmission(MPU_ADDR);
@@ -85,124 +97,132 @@ void setup() {
         // Wake up MPU6050
         Wire.beginTransmission(MPU_ADDR);
         Wire.write(0x6B); // Power management register
-        Wire.write(0); // Wake sensor up
+        Wire.write(0); // Wake up sensor
         Wire.endTransmission();
         delay(500);
-        // Save current position as the normal starting position
+        // Save current position as normal
         readAccelerometer(baseX, baseY, baseZ);
     } else {
         Serial.println("MPU6050 not found. Motion alert disabled.");
         accelFound = false;
     }
 }
+// -------------------- MAIN LOOP --------------------
 void loop() {
-    // If button is pressed, mute current alerts
+    // Button click stops/mutes the current alert
     if (buttonPressed()) {
         clearAlerts();
         alertsMuted = true;
         Serial.println("Alerts muted by button.");
-        delay(500); // Simple debounce delay
+        delay(500); // Simple debounce
         return;
     }
-    checkMotion(); // Check accelerometer motion
-    checkFakeTemperature(); // Check fake temp from photoresistor
-    // If both alerts are no longer active, allow future alerts again
+    checkMotion(); // Check motion
+    checkTemperature(); // Check real DS18B20 temperature
+    // If nothing is wrong anymore, allow future alerts again
     if (!motionAlert && !tempAlert) {
         alertsMuted = false;
     }
-    // If alerts were muted, keep motor and buzzer off
+    // If alert was muted, keep outputs off
     if (alertsMuted) {
         stopOutputs();
         delay(100);
         return;
     }
-    // Pick the correct alert pattern
+    // Choose alert pattern
     if (motionAlert && tempAlert) {
-        playBothAlert(); // Continuous alert
+        playBothAlert(); // Continuous beep
     } else if (motionAlert) {
         playMotionAlert(); // Long beep pattern
     } else if (tempAlert) {
         playTempAlert(); // Double beep pattern
     } else {
-        stopOutputs(); // Nothing wrong, stay quiet
+        stopOutputs(); // No alert
     }
     delay(100);
 }
+// -------------------- MOTION CHECK --------------------
 void checkMotion() {
-    if (!accelFound) return; // Skip if accelerometer was not detected
-    int16_t x, y, z; // Current accelerometer readings
-    readAccelerometer(x, y, z);
+    if (!accelFound) return; // Skip if accelerometer missing
+    int16_t x, y, z; // Current X/Y/Z values
+    readAccelerometer(x, y, z); // Read accelerometer
     // Compare current position to starting position
     int rawMovement = abs(x - baseX) + abs(y - baseY) + abs(z - baseZ);
-    // Convert raw movement to approximate g units
+    // Convert raw MPU6050 movement to approximate g units
     float movementG = rawMovement / 16384.0;
     Serial.print("Movement G: ");
     Serial.println(movementG);
-    // If movement is big enough, turn on motion alert
+    // Trigger alert if movement is above threshold
     if (movementG > motionThresholdG) {
         motionAlert = true;
     }
 }
-void checkFakeTemperature() {
-    int lightValue = analogRead(lightPin); // Read photoresistor value
-    // Convert light reading to fake body temp from 35C to 42C
-    float fakeTempC = 35.0 + (lightValue / 4095.0) * 7.0;
-    Serial.print("Light: ");
-    Serial.print(lightValue);
-    Serial.print(" | Fake Temp C: ");
-    Serial.println(fakeTempC);
-    // If fake temp is outside the safe range, trigger temp alert
-    if (fakeTempC < lowTempC || fakeTempC > highTempC) {
+// -------------------- TEMPERATURE CHECK --------------------
+void checkTemperature() {
+    tempSensor.requestTemperatures(); // Ask DS18B20 for temp
+    float tempC = tempSensor.getTempCByIndex(0); // Read first sensor
+    Serial.print("Temp C: ");
+    Serial.println(tempC);
+    // -127 means sensor is disconnected/not detected
+    if (tempC == DEVICE_DISCONNECTED_C) {
+        Serial.println("Temperature sensor not detected!");
+        tempAlert = true;
+        return;
+    }
+    // Trigger temp alert if outside range
+    if (tempC < lowTempC || tempC > highTempC) {
         tempAlert = true;
     }
 }
+// -------------------- ALERT PATTERNS --------------------
 void playMotionAlert() {
     // Pattern: beeeep ... beeeep ... beeeep
-    digitalWrite(motorPin, HIGH); // Motor on
-    tone(buzzerPin, 1000); // Buzzer on
-    delay(600); // Long beep
-    digitalWrite(motorPin, LOW); // Motor off
-    noTone(buzzerPin); // Buzzer off
-    delay(400); // Pause
+    digitalWrite(motorPin, HIGH);
+    tone(buzzerPin, 1000);
+    delay(600);
+    digitalWrite(motorPin, LOW);
+    noTone(buzzerPin);
+    delay(400);
 }
 void playTempAlert() {
     // Pattern: beepbeep ... beepbeep ... beepbeep
     for (int i = 0; i < 2; i++) {
-        digitalWrite(motorPin, HIGH); // Motor on
-        tone(buzzerPin, 1500); // Buzzer on
-        delay(150); // Short beep
-        digitalWrite(motorPin, LOW); // Motor off
-        noTone(buzzerPin); // Buzzer off
-        delay(150); // Short pause
+        digitalWrite(motorPin, HIGH);
+        tone(buzzerPin, 1500);
+        delay(150);
+        digitalWrite(motorPin, LOW);
+        noTone(buzzerPin);
+        delay(150);
     }
-    delay(500); // Longer pause between double-beep groups
+    delay(500);
 }
 void playBothAlert() {
     // Pattern: continuous beeeeeeeeeep
-    digitalWrite(motorPin, HIGH); // Motor stays on
-    tone(buzzerPin, 2000); // Buzzer stays on
+    digitalWrite(motorPin, HIGH);
+    tone(buzzerPin, 2000);
 }
+// -------------------- HELPER FUNCTIONS --------------------
 void clearAlerts() {
     motionAlert = false; // Clear motion alert
     tempAlert = false; // Clear temp alert
-    stopOutputs(); // Turn off motor and buzzer
+    stopOutputs(); // Turn off motor/buzzer
 }
 void stopOutputs() {
     digitalWrite(motorPin, LOW); // Motor off
     noTone(buzzerPin); // Buzzer off
 }
 bool buttonPressed() {
-    // Button uses INPUT_PULLUP, so pressed = LOW
+    // INPUT_PULLUP means pressed = LOW
     return digitalRead(buttonPin) == LOW;
 }
 void readAccelerometer(int16_t & x, int16_t & y, int16_t & z) {
-    // Ask MPU6050 for accelerometer data
+    // Tell MPU6050 we want accelerometer data
     Wire.beginTransmission(MPU_ADDR);
     Wire.write(0x3B); // First accelerometer register
     Wire.endTransmission(false);
-    // Request 6 bytes: X high/low, Y high/low, Z high/low
+    // Request 6 bytes: X, Y, Z
     Wire.requestFrom(MPU_ADDR, 6, true);
-    // Combine two bytes for each axis
+    // Combine high and low bytes for each axis
     x = Wire.read() << 8 | Wire.read();
     y = Wire.read() << 8 | Wire.read();
     z = Wire.read() << 8 | Wire.read();
