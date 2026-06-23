@@ -1,11 +1,6 @@
 # Armband Health Sensor
 My project is a wearable armband that can sense when someone who is supposed to limit their mobility overextends their arm, as well as let them know about the safety of their specific temperature circumstance. Using a temperature sensor and accelerometer to detect the arms movement, a speaker and buzzer go off with different patterns to alert the wearer on what is happening. This project held many challenges and learning curves due to the many components, but it was also extremely entertaining to work on as well as fufilling because it made a device that was applicable for the health field and was effective. 
 
-You should comment out all portions of your portfolio that you have not completed yet, as well as any instructions:
-```HTML 
-<!--- This is an HTML comment in Markdown -->
-<!--- Anything between these symbols will not render on the published site -->
-```
 
 | **Engineer** | **School** | **Area of Interest** | **Grade** |
 |:--:|:--:|:--:|:--:|
