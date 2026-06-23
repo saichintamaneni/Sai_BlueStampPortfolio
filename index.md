@@ -225,8 +225,6 @@ void readAccelerometer(int16_t & x, int16_t & y, int16_t & z) {
 ```
 
 # Bill of Materials
-Here's where you'll list the parts in your project. To add more rows, just copy and paste the example rows below.
-Don't forget to place the link of where to buy each component inside the quotation marks in the corresponding row after href =. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize this to your project needs. 
 
 | **Part** | **Note** | **Price** | **Link** |
 |:--:|:--:|:--:|:--:|
@@ -245,8 +243,9 @@ Don't forget to place the link of where to buy each component inside the quotati
 
 
 # Other Resources Used
-One of the best parts about Github is that you can view how other people set up their own work. Here are some past BSE portfolios that are awesome examples. You can view how they set up their portfolio, and you can view their index.md files to understand how they implemented different portfolio components.
-- [Example 1](https://trashytuber.github.io/YimingJiaBlueStamp/)
-- [Example 2](https://sviatil0.github.io/Sviatoslav_BSE/)
-- [Example 3](https://arneshkumar.github.io/arneshbluestamp/)
 
+- [Routine Reinforcement Armband](https://www.instructables.com/Routine-Reinforcement-Armband/)
+- [How to Use the MB102 Breadboard Power Supply](https://www.youtube.com/watch?v=_LN5YG1D5uc)
+- [Using Functions in a Sketch for Arduino](https://docs.arduino.cc/learn/programming/functions/)
+- [Pin Numbering for Arduino Nano ESP32](https://support.arduino.cc/hc/en-us/articles/10483225565980-Select-pin-numbering-for-Nano-ESP32-in-Arduino-IDE)
+- [DS18B20 Temperature Sensor Tutorial](https://www.youtube.com/watch?v=qxEclOy6jpI)
