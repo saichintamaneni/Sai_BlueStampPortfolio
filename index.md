@@ -13,7 +13,7 @@ You should comment out all portions of your portfolio that you have not complete
 
 **Replace the BlueStamp logo below with an image of yourself and your completed project. Follow the guide [here](https://tomcam.github.io/least-github-pages/adding-images-github-pages-site.html) if you need help.**
 
-![Headstone Image](logo.svg)
+![Headstone Image](IMG_0501.jpeg)
   
 # Final Milestone
 
@@ -32,7 +32,13 @@ My project is an armband that is aimed to recognize when someone who is supposed
 
 
 # Schematic 
-Here's where you'll put images of your schematics. [Tinkercad](https://www.tinkercad.com/blog/official-guide-to-tinkercad-circuits) and [Fritzing](https://fritzing.org/learning/) are both great resoruces to create professional schematic diagrams, though BSE recommends Tinkercad becuase it can be done easily and for free in the browser. 
+
+Initial Schematic (To Test Device)
+![Schematic 1](IMG_6239.jpeg)
+
+Final Schematic (Compressed and Simplified)
+![Schematic 2](IMG_6240.jpeg)
+
 
 # Code
 
